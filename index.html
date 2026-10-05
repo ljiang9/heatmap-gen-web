@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>heatmap-gen-web · 热力图</title>
+<style>
+  body { margin:0; background:#0f172a; color:#e2e8f0; padding:24px;
+         font-family: system-ui, "PingFang SC", sans-serif; }
+  h1 { font-size:20px; }
+  table { border-collapse: collapse; }
+  td, th { width:46px; height:34px; text-align:center; font-size:12px; }
+  th { color:#94a3b8; font-weight:normal; }
+  .cell { border-radius:4px; color:#0b1220; font-weight:600; cursor:pointer; }
+  .legend { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:12px; color:#94a3b8; }
+  .legend .sw { width:18px; height:12px; border-radius:2px; }
+  #hoverinfo { margin-top:10px; font-size:13px; color:#38bdf8; min-height:18px; }
+</style>
+</head>
+<body>
+  <h1>每周活跃热力图</h1>
+  <table id="heatmap"></table>
+  <div class="legend">
+    <span>低</span>
+    <div class="sw" style="background:rgb(239,246,255)"></div>
+    <div class="sw" style="background:rgb(147,197,253)"></div>
+    <div class="sw" style="background:rgb(59,130,246)"></div>
+    <div class="sw" style="background:rgb(30,58,138)"></div>
+    <span>高</span>
+  </div>
+  <div id="hoverinfo">悬停/点击单元格查看数值</div>
+
+<script id="heatmap-data" type="application/json">
+{
+  "rows": ["周一", "周二", "周三", "周四", "周五"],
+  "cols": ["第1周", "第2周", "第3周", "第4周"],
+  "matrix": [
+    [3, 5, 8, 12],
+    [2, 4, 7, 10],
+    [5, 6, 9, 15],
+    [1, 3, 4, 6],
+    [8, 9, 12, 20]
+  ]
+}
+</script>
+<script>
+// 颜色映射：根据数值在 [min,max] 上的位置返回蓝白色阶
+function colorFor(value, min, max) {
+  var t = (max === min) ? 0.5 : (value - min) / (max - min);
+  var r = Math.round(239 - t * (239 - 30));
+  var g = Math.round(246 - t * (246 - 58));
+  var b = Math.round(255 - t * (255 - 138));
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+window.__colorFor = colorFor;
+
+(function () {
+  var data = JSON.parse(document.getElementById('heatmap-data').textContent);
+  var flat = data.matrix.reduce(function (a, b) { return a.concat(b); }, []);
+  var min = Math.min.apply(null, flat);
+  var max = Math.max.apply(null, flat);
+
+  var table = document.getElementById('heatmap');
+  // 表头
+  var head = '<tr><th></th>';
+  data.cols.forEach(function (c) { head += '<th>' + c + '</th>'; });
+  head += '</tr>';
+  table.innerHTML = head;
+
+  data.matrix.forEach(function (row, i) {
+    var tr = document.createElement('tr');
+    var label = '<th>' + data.rows[i] + '</th>';
+    var cells = '';
+    row.forEach(function (v, j) {
+      var bg = colorFor(v, min, max);
+      cells += '<td class="cell" style="background:' + bg + '">' + v + '</td>';
+    });
+    tr.innerHTML = label + cells;
+    table.appendChild(tr);
+  });
+
+  // 悬停提示
+  var info = document.getElementById('hoverinfo');
+  table.addEventListener('mouseover', function (e) {
+    var t = e.target;
+    if (t.classList && t.classList.contains('cell')) {
+      info.textContent = '数值 = ' + t.textContent;
+    }
+  });
+})();
+</script>
+</body>
+</html>
